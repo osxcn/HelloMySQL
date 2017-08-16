@@ -2,6 +2,7 @@ package com.micro.profession.jdbc.practice;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -16,6 +17,7 @@ public class HelloJDBC {
 	public static void helloword() throws ClassNotFoundException {
 		Connection conn = null;
 		Statement stmt = null;
+		PreparedStatement ptmt = null;
 		ResultSet rs = null;
 		
 		//1. 加载数据库驱动
@@ -23,10 +25,12 @@ public class HelloJDBC {
 		//2. 建立数据库连接
 		try {
 			// 获得数据库连接
+			DB_URL = DB_URL + "?useCursorFetch=true";
 			conn = DriverManager.getConnection(DB_URL, USER, PASSWORD);
 			//3. 执行SQL语句
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery("select userName from user");
+			ptmt = conn.prepareStatement("select userName from user");
+			ptmt.setFetchSize(1);
+			rs = ptmt.executeQuery();
 			//4. 获取执行结果
 			while(rs.next()) {
 				System.out.println("hello " + rs.getString("userName"));
