@@ -2,37 +2,37 @@ package com.micro.profession.jdbc.practice;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashSet;
+import java.util.Set;
 
-public class HelloJDBC_cursor {
+public class BatchTest {
 	
 	static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
 	static String DB_URL = "jdbc:mysql://localhost/cloud_study";
 	static final String USER = "root";
 	static final String PASSWORD = "root";
 	
-	public static void helloword() throws ClassNotFoundException {
+	public static void insertUsers(Set<String> users) 
+			throws ClassNotFoundException {
 		Connection conn = null;
-		PreparedStatement ptmt = null;
-		ResultSet rs = null;
+		Statement stmt = null;
 		
 		//1. 加载数据库驱动
 		Class.forName(JDBC_DRIVER);
 		//2. 建立数据库连接
 		try {
 			// 获得数据库连接
-			DB_URL = DB_URL + "?useCursorFetch=true";
 			conn = DriverManager.getConnection(DB_URL, USER, PASSWORD);
 			//3. 执行SQL语句
-			ptmt = conn.prepareStatement("select userName from user");
-			ptmt.setFetchSize(1);
-			rs = ptmt.executeQuery();
-			//4. 获取执行结果
-			while(rs.next()) {
-				System.out.println("hello " + rs.getString("userName"));
+			stmt = conn.createStatement();
+			for(String user : users) {
+				stmt.addBatch("insert into user(userName) values ('" + user
+						+ "')");
 			}
+			stmt.executeBatch();
+			stmt.clearBatch();
 		} catch (SQLException e) {
 			// 异常处理
 			e.printStackTrace();
@@ -41,10 +41,8 @@ public class HelloJDBC_cursor {
 			try {
 				if(conn != null)
 					conn.close();
-				if(ptmt != null)
-					ptmt.close();
-				if(rs != null)
-					rs.close();
+				if(stmt != null)
+					stmt.close();
 			} catch (SQLException e) {
 				// ignore
 			}
@@ -52,7 +50,11 @@ public class HelloJDBC_cursor {
 	}
 
 	public static void main(String[] args) throws ClassNotFoundException {
-		helloword();
+		Set<String> users = new HashSet<String>();
+		users.add("GuoYi");
+		users.add("ZhangSi");
+		users.add("LiSan");
+		insertUsers(users);
 	}
 
 }
