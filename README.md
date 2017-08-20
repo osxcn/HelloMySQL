@@ -30,6 +30,10 @@
 		* [1.6.2 常用JDBC URL](#162-常用jdbc-url)
 	* [1.7 构建步骤](#17-构建步骤)
 	* [1.8 JDBC高级功能](#18-jdbc高级功能)
+		* [1.8.1 游标](#181-游标)
+		* [1.8.2 流方式](#182-流方式)
+		* [1.8.3 ](#183-)
+		* [1.8.4 ](#184-)
 * [2. 数据库连接池](#2-数据库连接池)
 	* []()
 * [3. SQL注入与防范](#3-sql注入与防范)
@@ -151,6 +155,8 @@ jdbc:microsoft:sqlserver://<ip>:<port>;DatabaseName=database
 4. 获取执行结果
 5. 清理环境
 
+[构建实例：JDBC基础-HelloJDBC](/src/main/java/com/micro/profession/jdbc/practice/HelloJDBC.java)
+
 ### 1.8 JDBC高级功能
 #### 1.8.1 游标
 游标提供一种客户端能够部分读取服务器端结果集的功能支持，允许分批读取SQL查询的结果。
@@ -164,7 +170,12 @@ jdbc:mysql://&lt;ip&gt;:&lt;port&gt;/&lt;database&gt;<a href="#db_url"><strong>?
 &emsp;&emsp;`PreparedStatement`继承自`Statement`接口，可以使用`PreparedStatement`接口来替代`Statement`接口，`PreparedStatement`接口相比`Statement`接口要求程序员在生成`PreparedStatement`的时候就要传入SQL语句，这个SQL语句是一个`参数格式化`的SQL，也就是说，SQL的`WHERE`过滤条件的参数都是通过`?`的形式来表示的，后续是通过`PreparedStatement`的`setString`和`setInt`方法来设置这些参数，然后进行执行。  
 &emsp;&emsp;`PreparedStatement`有个`setFetchSize`接口，这个接口可以实现游标的功能。通过`setFetchSize`，就可以设置客户端JDBC每次从服务器端取回的记录的数量。
 
-#### 1.8.2 
+[构建实例：JDBC进阶-游标-HelloJDBC_cursor](/src/main/java/com/micro/profession/jdbc/practice/HelloJDBC_cursor.java)
+
+#### 1.8.2 流方式
+流方式就是将大字段的内容以二进制的方式按照区间进行划分，划分为多个区间，每次读取一个区间中的内容，在处理结束后再读取下一个区间。
+
+[构建实例：JDBC进阶-流方式-LiuFang](/src/main/java/com/micro/profession/jdbc/practice/LiuFang.java)
 
 #### 1.8.3 
 
