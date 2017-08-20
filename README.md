@@ -33,7 +33,7 @@
 		* [1.8.1 游标](#181-游标)
 		* [1.8.2 流方式](#182-流方式)
 		* [1.8.3 批处理](#183-批处理)
-		* [1.8.4 ](#184-)
+		* [1.8.4 字符集设置](#184-字符集设置)
 * [2. 数据库连接池](#2-数据库连接池)
 	* []()
 * [3. SQL注入与防范](#3-sql注入与防范)
@@ -195,8 +195,24 @@ jdbc:mysql://&lt;ip&gt;:&lt;port&gt;/&lt;database&gt;<a href="#db_url"><strong>?
 
 [构建实例：JDBC进阶-批处理-BatchTest](/src/main/java/com/micro/profession/jdbc/practice/BatchTest.java)
 
-#### 1.8.4 
+#### 1.8.4 字符集设置
+1. 获取数据库编码设置
+```mysql
+show variables like '%character%';
+```
+2. 编码级别
+* 实例级别：character_set_server
+* 数据库级别：character_set_database
+* 表级别：DEFAULT CHARSET=utf8
+* 列级别：CHARACTER SET utf8
+`
+编码级别优先顺序：Server < Database < Table < Column
+`
+3. JDBC设置
 
+`DB_URL` = `DB_URL` + `characterEncoding=utf8`
+
+注：为了保证中文不出错，无论是数据库的还是JDBC的，建议设置为`utf8`
 
 ## 2. 数据库连接池
 
