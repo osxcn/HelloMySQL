@@ -28,6 +28,8 @@
 	* [1.6 JDBC URL](#16-jdbc-url)
 		* [1.6.1 介绍](#161-介绍)
 		* [1.6.2 常用JDBC URL](#162-常用jdbc-url)
+	* [1.7 构建步骤](#17-构建步骤)
+	* [1.8 JDBC高级功能](#18-jdbc高级功能)
 * [2. 数据库连接池](#2-数据库连接池)
 	* []()
 * [3. SQL注入与防范](#3-sql注入与防范)
@@ -37,9 +39,9 @@
 ## 1. JDBC
 
 ### 1.1 JDBC重要意义
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;应用程序通过调用统一接口可以访问任意数据库。JDBC屏蔽了客户端与服务器端交互协议的实现细节，只要能熟练的使用JDBC提供的标准接口，无需关心底层数据库的实现方式。<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;对于Java应用程序，JDBC就是一个普通的架包，在应用程序中引用架包提供的类和方法，通过操作Java对象的方式，就可以获取数据库中的数据。<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;对数据库厂商来说，JDBC就是一套接口规范，每个数据库厂商都必须实现JDBC定义的接口，确保用户通过JDBC正确的访问数据库。<br/>
+&emsp;&emsp;应用程序通过调用统一接口可以访问任意数据库。JDBC屏蔽了客户端与服务器端交互协议的实现细节，只要能熟练的使用JDBC提供的标准接口，无需关心底层数据库的实现方式。  
+&emsp;&emsp;对于Java应用程序，JDBC就是一个普通的架包，在应用程序中引用架包提供的类和方法，通过操作Java对象的方式，就可以获取数据库中的数据。  
+&emsp;&emsp;对数据库厂商来说，JDBC就是一套接口规范，每个数据库厂商都必须实现JDBC定义的接口，确保用户通过JDBC正确的访问数据库。
 
 ### 1.2 JDBC优势
 1. 简单。掌握一套接口就可以实现对任意数据库的访问。
@@ -70,21 +72,28 @@
 * DriverManager是Java的管理类，用户通过Class.forName的方式就可以向DriverManager注册一个驱动程序，然后通过DriverManager的getConnection方法就可以调用该驱动程序，建立到后端数据库的物理链接。
 
 #### 1.5.2 Connection
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Connection代表Java应用程序对后端数据库的一条物理链接，基于这条链接可以执行一些SQL语句。
+代表Java应用程序对后端数据库的一条物理链接，基于这条链接可以执行一些SQL语句。
 * 常用方法
 ```Java
 Statment stmt = conn.createStatement();
 ```
 
 #### 1.5.3 Statement
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Statement对象是一个SQL的容器，容器中可以执行诸如insert、delete、update、select也就是增删改查等操作。容器可以承载放入的一些SQL语句：通过Statement的executeQuery方法可以执行一个数据库查询，得到数据库查询结果的一个集合，集合是以一个ResultSet对象来表示；也可以通过Statement对象执行更新、删除语句，这时候调用execute和executeUpdate方法，它返回的是一个int值的对象，它代表的是执行的语句影响了多少条数据库记录。
+Statement对象是一个SQL的容器，容器中可以执行诸如insert、delete、update、select也就是增删改查等操作。
+
+容器可以承载放入的一些SQL语句：
+1. 通过Statement的executeQuery方法可以执行一个数据库查询，得到数据库查询结果的一个集合，集合是以一个ResultSet对象来表示；
+2. 通过Statement对象执行更新、删除语句，这时候调用execute和executeUpdate方法，它返回的是一个int值的对象，它代表的是执行的语句影响了多少条数据库记录。
+* 常用方法
 ```Java
 ResultSet rs = stmt.executeQuery("select userName form user");
 ```
 
 #### 1.5.4 ResultSet
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ResultSet代表了一个SQL的查询结果。关系型数据库的本质是一个二元表，所以ResultSet对象实际也是一个由行和列所组成的二元表。
+ResultSet代表了一个SQL的查询结果。关系型数据库的本质是一个二元表，所以ResultSet对象实际也是一个由行和列所组成的二元表。
+
 ResultSet对象的内部存在一个指针，用来指向当前的一个行记录，默认该指针指向第一行记录。
+
 移动指针的方法：
 * .next()		将指针指向下一行
 * .previous()	将指针指向上一行
@@ -100,18 +109,19 @@ ResultSet对象的内部存在一个指针，用来指向当前的一个行记�
 每个方法都有两种方式：获取列名和获取列序号（从0开始排序）。建议采用列名的方式获取结果，因为更加直观。
 
 #### 1.5.5 SQLException
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;通过SQLException来表示异常。在应用程序的处理过程中，要通过捕获SQLException来进行相应的异常处理。
+通过SQLException来表示异常。在应用程序的处理过程中，要通过捕获SQLException来进行相应的异常处理。
 
 ### 1.6 JDBC URL
 #### 1.6.1 介绍
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JDBC URL是后端数据库的唯一标识符，应用程序通过该标识符即可唯一的确定后端的某个数据库实例。它是由三个部分构成的：
+JDBC URL是后端数据库的唯一标识符，应用程序通过该标识符即可唯一的确定后端的某个数据库实例。它是由三个部分构成的：
 1. 协议：这是固定和统一的，为jdbc；
 2. 子协议：getConnection方法就是通过URL中子协议部分确定调用对应的驱动程序，来建立到后端数据库的物理链接。以MySQL数据库为例，就是mysql；
-3. 子名称：由三个部分组成：主机、端口、数据库
-以下是一个JDBC URL的示例：
-```Java
-jdbc:mysql://10.164.172.20:3306/cloud_study
-```
+3. 子名称：由三个部分组成：主机、端口、数据库.
+
+以下是一个JDBC URL（后文例子中称之为<strong>DB_URL</strong>）的示例：
+<pre>
+jdbc:mysql://<a href="#db_url" title="IP"><strong>10.164.172.20</strong></a>:<a href="#db_url" title="端口"><strong>3306</strong></a>/<a href="#db_url" title="数据库"><strong>cloud_study</strong></a>
+</pre>
 * 协议：jdbc
 * 子协议：mysql
 * 子名称：10.164.172.20:3306/cloud_study
@@ -132,6 +142,34 @@ jdbc:oracle:thin@<ip>:<port>/database
 ```Java
 jdbc:microsoft:sqlserver://<ip>:<port>;DatabaseName=database
 ```
+
+### 1.7 构建步骤
+构建一个完整的Java Web程序至少应该包含以下五个步骤：
+1. 装载驱动程序
+2. 建立数据库连接
+3. 执行SQL语句
+4. 获取执行结果
+5. 清理环境
+
+### 1.8 JDBC高级功能
+#### 1.8.1 游标
+游标提供一种客户端能够部分读取服务器端结果集的功能支持，允许分批读取SQL查询的结果。
+* 如何使用游标
+1. DB_URL中新增一个参数
+<pre>
+jdbc:mysql://&lt;ip&gt;:&lt;port&gt;/&lt;database&gt;<a href="#db_url"><strong>?useCursorFetch=true</strong></a>
+</pre>
+
+2. 使用`PreparedStatement`接口  
+&emsp;&emsp;`PreparedStatement`继承自`Statement`接口，可以使用`PreparedStatement`接口来替代`Statement`接口，`PreparedStatement`接口相比`Statement`接口要求程序员在生成`PreparedStatement`的时候就要传入SQL语句，这个SQL语句是一个`参数格式化`的SQL，也就是说，SQL的`WHERE`过滤条件的参数都是通过`?`的形式来表示的，后续是通过`PreparedStatement`的`setString`和`setInt`方法来设置这些参数，然后进行执行。  
+&emsp;&emsp;`PreparedStatement`有个`setFetchSize`接口，这个接口可以实现游标的功能。通过`setFetchSize`，就可以设置客户端JDBC每次从服务器端取回的记录的数量。
+
+#### 1.8.2 
+
+#### 1.8.3 
+
+#### 1.8.4 
+
 
 ## 2. 数据库连接池
 
