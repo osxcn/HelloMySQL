@@ -32,7 +32,7 @@
 	* [1.8 JDBC高级功能](#18-jdbc高级功能)
 		* [1.8.1 游标](#181-游标)
 		* [1.8.2 流方式](#182-流方式)
-		* [1.8.3 ](#183-)
+		* [1.8.3 批处理](#183-批处理)
 		* [1.8.4 ](#184-)
 * [2. 数据库连接池](#2-数据库连接池)
 	* []()
@@ -170,14 +170,30 @@ jdbc:mysql://&lt;ip&gt;:&lt;port&gt;/&lt;database&gt;<a href="#db_url"><strong>?
 &emsp;&emsp;`PreparedStatement`继承自`Statement`接口，可以使用`PreparedStatement`接口来替代`Statement`接口，`PreparedStatement`接口相比`Statement`接口要求程序员在生成`PreparedStatement`的时候就要传入SQL语句，这个SQL语句是一个`参数格式化`的SQL，也就是说，SQL的`WHERE`过滤条件的参数都是通过`?`的形式来表示的，后续是通过`PreparedStatement`的`setString`和`setInt`方法来设置这些参数，然后进行执行。  
 &emsp;&emsp;`PreparedStatement`有个`setFetchSize`接口，这个接口可以实现游标的功能。通过`setFetchSize`，就可以设置客户端JDBC每次从服务器端取回的记录的数量。
 
+应用场景：查询时返回记录过多。
+
 [构建实例：JDBC进阶-游标-HelloJDBC_cursor](/src/main/java/com/micro/profession/jdbc/practice/HelloJDBC_cursor.java)
 
 #### 1.8.2 流方式
 流方式就是将大字段的内容以二进制的方式按照区间进行划分，划分为多个区间，每次读取一个区间中的内容，在处理结束后再读取下一个区间。
 
+应用场景：读取大字段数据。
+
 [构建实例：JDBC进阶-流方式-LiuFang](/src/main/java/com/micro/profession/jdbc/practice/LiuFang.java)
 
-#### 1.8.3 
+#### 1.8.3 批处理
+批处理就是通过发送一次SQL可以插入多条数据，即将多条SQL一次性进行发送。
+
+批处理使用涉及到`Statement`的三个函数：
+* addBatch()		把SQL打包成一个执行单元(Batch)
+* executeBatch()	执行SQL
+* clearBatch()		清空Batch中的SQL语句，准备下次执行
+
+注：`PreparedStatement`同样可以使用这三个函数
+
+应用场景：大量数据插入操作。
+
+[构建实例：JDBC进阶-批处理-BatchTest](/src/main/java/com/micro/profession/jdbc/practice/BatchTest.java)
 
 #### 1.8.4 
 
