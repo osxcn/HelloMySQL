@@ -41,8 +41,12 @@
 		* [2.2.2 使用连接池](#222-使用连接池)
 		* [2.2.3 高级配置](#223-高级配置)
 * [3. SQL注入与防范](#3-sql注入与防范)
-	* []()
+	* [3.1 数据库注入](#31-数据库注入)
+	* [3.2 问题根源](#32-问题根源)
+	* [3.3 解决方案](#33-解决方案)
+	* [3.4 其他注意事项](#34-其他注意事项)
 * [4. 事务](#4-事务)
+	* []()
 * [5. MyBatis](#5-mybatis)
 
 ## 1. JDBC
@@ -338,7 +342,85 @@ MySQL数据库默认的服务器端会自动关闭空闲时间超过8小时的�
 [构建实例：数据库连接池-DBPoolDbcpImpl](/src/main/java/com/micro/profession/jdbc/practice/DBPoolDbcpImpl.java)
 
 ## 3. SQL注入与防范
+### 3.1 数据库注入
+&emsp;&emsp;在Web应用架构下，用户无法直接访问数据库，必须发送HTTP请求到Java应用服务器，然后由Java应用服务器来访问后端的数据库，所以恶意用户想要获取数据库中的核心价值数据就绕不开Java应用程序，唯一的途径就是利用业务程序的一个漏洞伪装自己的请求，欺骗业务程序，达到最终获取到数据库数据的目的。  
+以下为根据之前JDBC内容所编写的根据用户名和密码获取用户信息的一段应用程序：
+```Java
+User user = null;
+String sql = "select * from user where userName = '" + userName 
+			+ "' and password = '" + password + "'";
+rs = stmt.executeQuery(sql);
+while (rs.next()) {
+	user = new User();
+	user.setUserName(rs.getString("userName"));
+	user.setCardNum(rs.getString("cardNum"));
+}
+return user;
+```
+&emsp;&emsp;在这段程序中，程序会根据用户名和密码去查询后端数据库的User表，看是否有跟用户名和密码匹配的用户，如果数据库返回的记录不为空，这个应用程序也就会返回一个不为空的User对象，将用户的信息返回给调用者。
+这段代码在Web应用中经常用于用户登录的场景。
 
+| 用户名 | 密码 |
+| :----: | :----: |
+| ZhangSan | 123456 |
+
+```mysql
+select * from user where userName = 'ZhangSan' and password = '123456';
+```
+&emsp;&emsp;用户在表单中输入用户名和密码，然后发送给Java应用程序所在的业务服务器，然后Java应用程序利用SQL语句去检索数据库，根据用户名和密码去匹配相应的数据库记录，如果能找到响应的用户，这条数据库记录返回就不为空，Java应用程序就获得了用户的相关信息，也就确认了这个用户为合法用户。如果User对象为空的话，则会用户认证失败，这说明用户在表单中提交的用户名和密码不正确。这是理想的用户登录的场景，看似天衣无缝，非常完美，但是事实并非如此。
+
+| 用户名 | 密码 |
+| :----: | :----: |
+| ZhangSan';-- | 111 |
+
+&emsp;&emsp;使用如上表所示的用户名和密码，该用户名和密码实际并不存在于数据库，但是依旧登录成功了，看似严格的用户登录程序认证失效了，这是为什么呢？  
+问题出在访问后端数据库的SQL语句上，如下所示的发送到后端数据库的SQL语句：
+
+```mysql
+select * from user where userName = 'ZhangSan';--' and password = '123456';
+```
+&emsp;&emsp;原先设计的SQL语句是包括UserName和password这两个检索条件的，但是实际上Java应用程序发送给后端数据库的SQL语句，已经不再是原先设计的场景的SQL语句的语义。实际上，由于用户名中的分号，导致原先的一条SQL语句变成了两条SQL语句，并且在第一条语句中去掉了SQL的检索条件。同时，SQL语句的后半部分，第二条SQL语句，因为两个`-`的注释符导致被数据库认为是注释的内容，自动被忽略掉了。最终，数据库检索的仅仅是用户名为`ZhangSan`的数据库记录，不再附有密码的检索条件，利用Java应用程序动态拼接SQL的漏洞，破坏了原先Java程序设定的SQL语义，欺骗了业务服务器，恶意获取了数据库中的数据。这样，他也获得了User对象，返回给了数据库，但是检索条件只是userName，并没有对password进行检索，这就导致了应用程序出现了漏洞，他在不知道密码的情况下也可以实现合法用户的认证登录。
+
+&emsp;&emsp;`SQL注入`就是用户输入表单或者URL参数中输入SQL命令达到欺骗Java应用程序的目的，破坏原有SQL的语义，发送恶意的SQL语句到数据库，导致数据库信息遭到泄露的一个Java应用程序的漏洞。
+
+### 3.2 问题根源
+&emsp;&emsp;`SQL注入`漏洞的根源在于SQL语句本身是动态拼接而成的，在用户注入参数前，SQL本身的语义是不确定的，用户输入的参数如果带有SQL命令或者特殊字符，可能会导致原有的SQL的语义发生改变，原先设定SQL的语义是根据用户名密码作为WHERE的两个过滤条件，而实际执行的时候SQL语义只检索了用户名，密码被注释掉了。
+
+### 3.3 解决方案
+&emsp;&emsp;参数化SQL的实现方式：首先，确定SQL的语义；随后，传入SQL的参数，能够保证SQL传入的参数不改变原先SQL的语义。这里的实现方式是利用`Connection`的`.preparedStatement`方法来创建一个`preparedStatement`对象来实现的。
+&emsp;&emsp;`preparedStatement`对象实现了`Statement`接口定义的所有方法，但是相对于`Statement`，它最大的优势在于提供了参数化SQL的实现方式。
+```mysql
+Select * from user where userName = ? AND password = ?
+```
+&emsp;&emsp;调用`Connection`的`preparedStatement`方法传入一个格式化的SQL，格式化SQL与平时写的SQL不同的地方在于：所有外部需要输入的参数都使用一个`?`来代替，这样就生成了一个`preparedStatement`对象，SQL语义伴随着对象也就确定了。这里的`?`号替代了参数，实现了一个占位符的功能。这条语句（`preparedStatement`函数）确定了SQL的语义。  
+&emsp;&emsp;然后开始向SQL传入参数：按照格式化SQL注入参数从做到右的顺序，根据参数的类型，如果是整形的话，用`setInt`；字符型的话，用`setString`；如果是布尔类型的话，用`setBoolean`。参数有两个，第一个是序号，也就是参数从左到右的出现顺序，在上述所说的SQL中，userName在前，password在后，所以userName是1，password是2。第二个参数就是要输入的值了，比如UserName的值为`ZhangSan`，那么就写成`setString(1,'ZhangSan')`,同理password写成`setString(2,'123456')`。这样完成后，SQL里传入了参数，并且这个参数能保证不改变SQL语义，就可以防止SQL的注入了。`preparedStatement`是最基础也是最常用的预防SQL注入的方法。
+
+[构建实例：SQL注入与防范-Login](/src/main/java/com/micro/profession/jdbc/practice/Login.java)
+
+### 3.4 其他注意事项
+* 严格的数据库权限管理
+	* 仅给予Web应用访问数据库的最小权限；
+	* 避免Drop table等权限；
+
+| 权限 | 是否给予用户 |
+| :--- | :--------- |
+| Select | Y |
+| Update | Y |
+| Delete | 谨慎 |
+| Insert | Y |
+| All | No |
+
+* 封装数据库错误
+	* 禁止直接将后端数据库异常信息暴露给用户！
+	* 对后端异常信息进行必要的封装，避免用户直接查看到后端异常！
+
+<p align="center">
+<img src="/img/JDBC/后端异常.png" alt="后端异常">
+</p>
+
+* 机密信息禁止明文存储
+	* 涉密信息需要加密处理
+	* mysql可以使用AES_ENCRYPT/AES_DECRYPT加密和解密
 
 ## 4. 事务
 
