@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.micro.profession.mybatis.resultMapTest.UserOp">
+	
+	<select id="getUser" parameterType="int" resultMap="UserMap">
+		select id,userName,corp from user where id = #{id}
+	</select>
+	
+	<resultMap type="com.micro.profession.mybatis.resultMapTest.User" id="UserMap">
+		<constructor>
+			<idArg column="id" javaType="int" />
+			<arg column="userName" javaType="String" />
+			<arg column="corp" javaType="String" />
+		</constructor>
+	</resultMap>
+</mapper>
