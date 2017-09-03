@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.micro.profession.mybatis.resultMapTest.UserOp">
+	
+	<select id="getUser" parameterType="int" resultMap="UserMap">
+		select u.id as userId, userName, courseName, corp, c.id as courseId 
+		from user u
+		left join userCourse uc on u.id = uc.user_id
+		left join course c on c.id = uc.course_id
+		where u.id = #{id}
+	</select>
+	
+	<resultMap type="com.micro.profession.mybatis.resultMapTest.User" id="UserMap">
+		<constructor>
+			<idArg column="userId" javaType="int" />
+			<arg column="userName" javaType="String" />
+			<arg column="corp" javaType="String" />
+		</constructor>
+		<collection property="courses"
+			ofType="com.micro.profession.mybatis.resultMapTest.Course">
+			<id property="id" column="courseId"/>
+			<result property="courseName" column="courseName" />
+		</collection>
+	</resultMap>
+</mapper>
