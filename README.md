@@ -70,7 +70,20 @@
 		* [4.2.6 SQL加锁分析](#426-sql加锁分析)
 		* [4.2.7 分析死锁的常用方法](#427-分析死锁的常用方法)
 * [5. MyBatis](#5-mybatis)
-	* []()
+	* [5.1 前言](#51-前言)
+		* [5.1.1 面向对象的世界与关系数据库的鸿沟](#511-面向对象的世界与关系数据库的鸿沟)
+		* [5.1.2 ORM](#512-orm)
+	* [5.2 MyBatis](#52-mybatis)
+		* [5.2.1 介绍](#521-介绍)
+		* [5.2.2 功能架构](#522-功能架构)
+		* [5.2.3 工作流机制](#523-工作流机制)
+		* [5.2.4 环境搭建](#524-环境搭建)
+		* [5.2.5 MyBatis优势与劣势](#525-mybatis优势与劣势)
+	* [5.3 MyBatis进阶](#53-mybatis进阶)
+		* [5.3.1 ResultMap](#531-resultmap)
+		* [5.3.2 DataSource](#532-datasource)
+		* [5.3.3 数据库连接生命周期](#533-数据库连接生命周期)
+		* [5.3.4 连接池常用配置选项](#534-连接池常用配置选项)
 
 ## 1. JDBC
 
@@ -648,4 +661,221 @@ show engine innodb status
 执行完这个命令后，会有一大段命令出现。其中有一个部分是包括死锁的，里面会列出发生死锁时，所等待的两个SQL语句，然后也会列出系统强制回滚的是哪个事务。知道了这些SQL语句，可以分析SQL语句的加锁方式，来调整SQL语句的顺序，或者改变SQL语句来保证按序获取锁资源，这样就可以有效避免死锁的产生。
 
 ## 5. MyBatis
+### 5.1 前言
+#### 5.1.1 面向对象的世界与关系数据库的鸿沟
+* 面向对象的世界中数据是对象。
+* 关系型数据库中数据是以行、列的二元表。
 
+#### 5.1.2 ORM
+1. 介绍
+* ORM(Object/Relation Mapping)
+* 持久化类与数据库表之间的映射关系
+* 对持久化对象的操作自动转换成对关系数据库操作
+
+2. 关系型数据库和对象的映射
+<p align="center">
+<img src="/img/JDBC/关系数据库和对象的映射.png" alt="关系数据库和对象的映射">
+</p>
+
+* 关系数据库的每一行映射为每一个对象
+* 关系数据库的每一列映射为对象的每个属性
+
+### 5.2 MyBatis
+#### 5.2.1 介绍
+* 项目前身是Apache基金会表的一个开源项目iBatis
+* 支持自定义SQL、存储过程和高级映射的持久化框架
+* 使用XML或者注解配置
+* 能够映射基本数据元素、接口、Java对象到数据库
+
+#### 5.2.2 功能架构
+<p align="center">
+<img src="/img/JDBC/MyBatis功能架构.png" alt="MyBatis功能架构">
+</p>
+
+从Mybatis的功能架构来看，主要分为三大层：  
+* 第一层为API的接口层。主要是提供给外部使用接口的API，主要是提供给程序开发人员。开发人员通过本地API来操作数据库，接口层接到调用请求后，将数请求给数据处理层，来完成具体的数据处理。
+* 第二层为数据处理层。它负责具体的SQL的查找、SQL解析、SQL执行和执行结果的映射处理，它的主要目的是根据调用请求来完成一次数据库的操作。
+* 第三层为基础支撑层。主要负责最基础的功能支撑，包括数据库连接管理、事务管理、配置加载、缓存处理。将它们抽象出来作为最基础的组件，为上层的数据处理层提供基础的支撑。
+
+#### 5.2.3 工作流机制
+<p align="center">
+<img src="/img/JDBC/MyBatis工作流机制.png" alt="MyBatis工作流机制">
+</p>
+
+* 根据XML或者注解加载SQL语句、参数映射、结果映射到内存
+* 应用程序调用API传入参数和SQL ID
+* MyBatis自动生成SQL语句完成数据库访问，转换执行结果返回应用程序
+
+首先，需要在应用程序启动的时候，加载XML文件，这个XML文件定义了后端数据库的地址，同时也定义了SQL和Java之间的映射关系；  
+然后，应用程序调用MyBatis提供的API接口，传入参数和SQL ID，MyBatis会自动的匹配相应的SQL语句，然后生成完整的SQL语句，访问后端的数据库，转换执行的结果为Java对象，最后返回给应用程序。
+
+#### 5.2.4 环境搭建
+1. 下载架包
+* JAR：
+	* mybatis-3.2.3.jar
+	* mysql-connector-java-5.1.12.jar
+
+2. 配置  
+每个MyBatis应用都是基于`SqlSessionFactory`的实例，以它为中心。通过`SqlSessionFactory`实例可以获取能够将对象操作转换成数据库SQL的`Session`，通过一个XML配置文件可以完成一个`SqlSessionFactory`的配置。  
+```xml
+<configuration>
+	<environments default="development">
+		<environment id="development">
+			<transactionManager type="jdbc" />
+			<!-- 配置数据库连接信息 -->
+			<dataSource type="POOLED">
+				<property name="river" value="com.mysql.jdbc.Driver" />
+				<property name="url" value="jdbc:mysql://localhost/cloud_study" />
+				<property name="username" value="root" />
+				<property name="password" value="123456" />
+			</dataSource>
+		</environment>
+	</environments>
+</configuration>
+```
+整个XML配置文件包含了MyBatis系统的核心配置，包括后端数据库连接实例的数据源和决定事务范围和控制方式的事务管理器——`transactionManager`。  
+首先就是事务管理器的设置。在`transactionManager`下有`type`属性，提供了两个选项，分别是`jdbc`和`manage`。
+* `jdbc`表示事务控制直接使用的是jdcb的提交和回滚来设置的，它表示MyBatis依赖于数据库源获得的数据库连接来管理事务的范围，实际上是依赖jdbc来实现事务控制的。
+* `manage`表示MyBatis的事务提交和回滚是本身MyBatis框架不做任何事情，也不会去调用jdbc的事务提交和回滚，事务的控制是交给外部的容器，比如spring的方式来完成。
+
+第二个要配置的是后端的数据库源。与jdbc一样，它包括四个属性，分别是：数据库驱动、url、用户名和密码。这里要求将`transactionManager`的`type`改为`jdbc`，因为直接使用MyBatis来完成数据库的访问。第二个在数据源方面，需要将数据库驱动、url、用户名和密码配置正确。
+
+3. Java对象
+* 构造对象
+* 构建接口
+
+MyBatis是一个ORM框架，所以要定义一些Java对象，然后建立对象对对象操作和SQL语句之间的映射关系。定义Java对象包括一些属性，这里以User也就是用户对象为例：
+```java
+public class User {
+	private int id;
+	private String userName;
+	private String corp;
+
+	public User(Integer id, String userName, String corp) {
+		this.id = id;
+		this.userName = userName;
+		this.corp = corp;
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	……
+}
+```
+首先定义User对象，包括一些属性，比如用户ID、用户名和用户所在公司等三个属性，get和set方法，还有类的构造函数。  
+有了Java对象后，还需要定义对这个Java对象的操作，因为MyBatis与其他传统的ORM框架是不同的，不是直接建立对象和关系数据库表数据之间的映射，而是采取更加灵活的方式，将对对象的操作与数据库的SQL语句建立映射关系。所以需要定义一些对数据的操作，这里使用Java的interface接口的方式来定义对对象的操作。
+```java
+public interface GetUserInfo {
+
+	public User getUser(int id);		// 获取用户
+
+	public void addUser(User user);		// 新增用户
+
+	public void updateUser(User user);	// 修改用户
+
+	public void deleteUser(User user);	// 删除用户
+}
+```
+
+4. 创建Java对象和SQL语句映射关系配置文件
+* 映射文件
+```xml
+<mapper namespace="com.micro.profession.mybatis.GetUserInfo">
+	<!-- 在select标签中编写查询的SQL语句，设置select标签的id属性为getUser，parameterType定义为int,
+		resultType="MyBatisTest.User"就表示将查询结果封装成一个User类 -->
+	<!-- 根据id查询得到一个User对象 -->
+	<select id="getUser" parameterType="int"
+		resultType="com.micro.profession.mybatis.User">
+		select id, userName, corp form user where id=#{id}
+	</select>
+</mapper>
+```
+配置文件中最重要的是要包含一个`mapper`的标签，标签有一个`namespace`属性，它的值使用的是定义接口的操作类——接口名称为`GetUserInfo`的类名加上包名来完成`namespace`属性的定义。  
+接下来定义具体的SQL语句：要完成的是获取数据库的信息，检索数据库获得User信息，然后映射到Java的对象中，所以这里`select`标签的`id`就定义为`getUser`，然后`parameterType`定义为`int`，因为要传入检索哪个用户。然后`resultType`定义为之前定义的User类，因为希望MyBatis把返回的结果自动的转化前面定义的Java对象，注意这里要加完整的类型，并且要求类型与Java属性名必须是相同的。
+
+5. 注册配置文件  
+```xml
+<configuration>
+	<environments default="development">
+		<environment id="development">
+			<transactionManager type="jdbc" />
+			<!-- 配置数据库连接信息 -->
+			<dataSource type="POOLED">
+				<property name="river" value="com.mysql.jdbc.Driver" />
+				<property name="url" value="jdbc:mysql://localhost/cloud_study" />
+				<property name="username" value="root" />
+				<property name="password" value="123456" />
+			</dataSource>
+		</environment>
+	</environments>
+	<mappers>
+		<mapper resource="com/micro/profession/mybatis/userMapper.xml">
+	</mappers>
+</configuration>
+```
+需要将映射文件加载到之前配置的`SqlSessionFactory`配置文件中，所以在`SqlSessionFactory`配置中添加一个`mapper`的标签，然后将这个映射文件的完整目录地址放在`resource`属性中，这样就完成了完整的MyBatis的配置。
+
+6. 完成数据库查询  
+<p align="center">
+<img src="/img/JDBC/完成数据库查询.png" alt="完成数据库查询">
+</p>
+
+#### 5.2.5 MyBatis优势与劣势
+* 优势
+	* 入门门槛较低
+	* 更加灵活，SQL优化
+* 劣势
+	* 需要自己编写SQL，工作量打
+	* 数据库移植性差
+
+### 5.3 MyBatis进阶
+##### 5.3.1 ResultMap
+* ResultMap元素是MyBatis中最重要最强大的元素
+* 数据库永远不是你想要的或需要它们是怎么样的
+* ResultMap可以实现复杂查询结果到复杂对象关联关系的转化
+
+1. Constructor
+* 类在实例化时，用来注入结果到构造方法中：
+	* idArg - ID参数；标记结果作为ID可以帮助提高整体效能
+	* arg - 注入到构造方法的一个普通结果
+
+2. Collection
+* 实现一对多的关联
+	* id - 一个ID结果；标记结果作为ID可以帮助提高整体效能
+	* result - 注入到字段或JavaBean属性的普通结果
+
+#### 5.3.2 DataSource
+* MyBatis 3.0 内置连接池
+* dataSource type = POOLED启用连接池
+
+#### 5.3.3 数据库连接生命周期
+<p align="center">
+<img src="/img/JDBC/数据库连接生命周期.png" alt="数据库连接生命周期">
+</p>
+
+#### 5.3.4 连接池常用配置选项
+* poolMaximumActiveConnections
+	* 数据库最大活跃连接数
+	* 考虑到随着连接数的增加，性能可能达到拐点，不建议设置过大
+* poolMaximumIdleConnections
+	* 最大空闲连接数
+	* 经验值建议设置与`poolMaximum`相同即可
+* poolMaxmumCheckoutTime
+	* 获取连接时如果没有`idleConnections`同时`activeConnections`达到最大值，则从`activeConnections`列表第一个连接开始，检查是否超过`poolMaxmumCheckoutTime`，如果超过，则强制使其失效，返回该连接
+	* 由于SQL执行时间受服务器配置、表结构不同，建议设置为预期最大SQL执行时间
+* poolTimeToWait
+	* 获取服务器端数据库连接的超时时间，如果超过该时间，则打印日志，同时重新获取
+	* 建议使用默认值20s
+* poolPingEnabled
+	* 启用连接侦测，检查连接池中的连接是否为有效连接
+	* 默认关闭，建议启用，防止服务器端异常关闭，导致客户端错误
+* poolPingQuery
+	* 侦测SQL，建议使用select1，开销小
+* poolPingConnectionsNotUsedFor
+	* 侦测时间，建议小于服务器端超时时间，MySQL默认超时8小时
